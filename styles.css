@@ -1,0 +1,57 @@
+/* styles.css */
+:root {
+  --toolbar-height: 40px;
+  --sidebar-width: 200px;
+  --main-container-bg: #f8f8f8;
+  /* --viewer-bg: #525659; /* Background visible around pages */
+  --viewer-bg: #ffffff;
+  --drop-zone-bg: rgba(0, 0, 0, 0.5);
+  --border-color: #ccc;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 10px; height: 100%; width: 100%; overflow: hidden; }
+body { font-family: sans-serif; height: 100%; width: 100%; overflow: hidden; background-color: var(--main-container-bg); }
+
+#outerContainer { display: flex; flex-direction: row; height: 100%; width: 100%; position: relative; }
+#sidebarContainer { width: var(--sidebar-width); overflow: hidden; position: relative; display: flex; flex-direction: column; border-right: 1px solid var(--border-color); transition: width 150ms ease-in-out; }
+#toolbarSidebar { display: flex; padding: 5px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; gap: 5px; }
+#toolbarSidebar button { padding: 3px 5px; font-size: 1.1rem; }
+#sidebarContent { flex-grow: 1; overflow: auto; position: relative; }
+#sidebarContent > div { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+#sidebarContent > div.hidden { display: none; }
+#sidebarResizer { width: 6px; height: 100%; position: absolute; right: -3px; top: 0; cursor: ew-resize; background-color: transparent; z-index: 50; }
+#mainContainer { flex-grow: 1; position: relative; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+
+.toolbar { height: var(--toolbar-height); background-color: var(--main-container-bg); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; padding: 0 10px; gap: 10px; flex-shrink: 0; position: relative; z-index: 100; }
+.customToolbar { display: flex; align-items: center; gap: 8px; }
+.customToolbar input[type="file"] { display: none; }
+.customToolbar .toolbarButton,
+.customToolbar label.toolbarButton,
+.customToolbar select.toolbarButton { padding: 5px 10px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; background-color: white; font-size: 1.2rem; white-space: nowrap; height: 30px; /* Align items */ }
+.customToolbar .toolbarButton:hover,
+.customToolbar label.toolbarButton:hover,
+.customToolbar select.toolbarButton:hover { background-color: #eee; }
+.customToolbar input[type="url"] { padding: 6px; border: 1px solid var(--border-color); border-radius: 4px; flex-grow: 1; font-size: 1.2rem; height: 30px; }
+.customToolbar #status-message { margin-left: auto; font-size: 1.1rem; color: #555; white-space: nowrap; }
+.customToolbar select.toolbarButton { padding: 5px; } /* Adjust select padding */
+
+#viewerContainer {
+  flex-grow: 1; /* No longer needed for absolute positioning */
+  position: relative; /* This was the problem */
+  position: absolute; /* Required by PDFViewer */
+  top: var(--toolbar-height); /* Position it below the fixed-height toolbar */
+  left: 0;
+  right: 0;
+  bottom: 0; /* Make it fill the rest of the mainContainer */
+  overflow: auto; /* Crucial for viewer scrolling */
+  background-color: var(--viewer-bg);
+}
+/* #viewer is styled by pdf_viewer.css */
+
+#drop-zone { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--drop-zone-bg); border: 3px dashed white; display: flex; align-items: center; justify-content: center; font-size: 2em; color: white; pointer-events: none; opacity: 0; transition: opacity 0.2s ease-in-out; z-index: 200; }
+body.dragging #drop-zone { opacity: 1; pointer-events: auto; }
+
+#errorWrapper { position: absolute; top: var(--toolbar-height); left: 0; right: 0; background: #ff5555; color: white; padding: 10px; z-index: 1000; font-size: 1.3rem; display: flex; justify-content: space-between; align-items: center; }
+#errorWrapper button { margin-left: 10px; padding: 3px 8px; cursor: pointer; }
+.hidden { display: none !important; }

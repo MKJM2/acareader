@@ -1,0 +1,27 @@
+{
+  "name": "acareader",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "bun run typecheck && vite build",
+    "preview": "vite preview --port 8080",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^22.14.1",
+    "@types/pdfjs-dist": "^2.10.378",
+    "rimraf": "^6.0.1",
+    "serve": "^14.2.4",
+    "vite": "^6.3.1"
+  },
+  "peerDependencies": {
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "pdfjs-dist": "^5.1.91"
+  }
+}
