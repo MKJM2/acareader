@@ -93,7 +93,7 @@ function initializePdfJsComponents() {
     updateZoomControls(evt.presetValue || String(evt.scale));
   });
 
-  eventBus.on('documentload', () => {
+  eventBus.on('pagerendered', () => {
     console.log('PDFViewer: documentload event (via EventBus)');
     const pageCount = pdfViewer?.pagesCount || 'N/A';
     setStatus(`Loaded: ${pageCount} pages`);
