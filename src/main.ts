@@ -142,8 +142,8 @@ function initializePdfJsComponents() {
     } else {
       // If something was highlighted previously, remove it
       if (lastOutlineHighlight) {
-        lastOutlineHighlight.classList.remove('active');
-        lastOutlineHighlight = null; // Reset tracker
+        // lastOutlineHighlight.classList.remove('active');
+        // lastOutlineHighlight = null; // Reset tracker
       }
     }
     // --- End Modification ---

@@ -14,7 +14,7 @@ html { font-size: 10px; height: 100%; width: 100%; overflow: hidden; }
 body { font-family: sans-serif; height: 100%; width: 100%; overflow: hidden; background-color: var(--main-container-bg); }
 
 #outerContainer { display: flex; flex-direction: row; height: 100%; width: 100%; position: relative; }
-#sidebarContainer { width: var(--sidebar-width); overflow: hidden; position: relative; display: flex; flex-direction: column; border-right: 1px solid var(--border-color); transition: width 150ms ease-in-out; }
+#sidebarContainer { width: var(--sidebar-width); overflow: hidden; position: relative; display: flex; flex-direction: column; transition: width 150ms ease-in-out; }
 #toolbarSidebar { display: flex; padding: 5px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; gap: 5px; }
 #toolbarSidebar button { padding: 3px 5px; font-size: 1.1rem; }
 #sidebarContent {
@@ -93,7 +93,6 @@ body.dragging #drop-zone { opacity: 1; pointer-events: auto; }
 }
 
 .outlineItem.active > a { /* Style for the active item */
-  background-color: #d0e0f0; /* Highlight background */
   font-weight: bold;
   color: #111;
 }
