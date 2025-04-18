@@ -3,26 +3,26 @@ import 'pdfjs-dist/web/pdf_viewer.css';
 import PdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 import {
-    EventBus,
-    PDFLinkService,
-    PDFViewer,
-    // AnnotationMode // Import if needed for enum value
+  EventBus,
+  PDFLinkService,
+  PDFViewer,
+  // AnnotationMode // Import if needed for enum value
 } from 'pdfjs-dist/web/pdf_viewer.mjs'; // Or viewer.mjs
 
 // --- Type Aliases ---
 type PDFDocumentProxy = pdfjsLib.PDFDocumentProxy;
 // Define types for outline items based on pdf.js structure
 type OutlineNode = {
-    title: string;
-    bold: boolean;
-    italic: boolean;
-    color: Uint8ClampedArray | null;
-    dest: Array<any> | string | null; // Destination array or named destination string
-    url: string | null;
-    unsafeUrl: string | undefined;
-    newWindow: boolean | undefined;
-    count?: number; // Optional page count (often for collapsed sections)
-    items: Array<OutlineNode>; // Nested items
+  title: string;
+  bold: boolean;
+  italic: boolean;
+  color: Uint8ClampedArray | null;
+  dest: Array<any> | string | null; // Destination array or named destination string
+  url: string | null;
+  unsafeUrl: string | undefined;
+  newWindow: boolean | undefined;
+  count?: number; // Optional page count (often for collapsed sections)
+  items: Array<OutlineNode>; // Nested items
 };
 
 // --- DOM Element References ---
@@ -93,8 +93,8 @@ function initializePdfJsComponents() {
     updateZoomControls(evt.presetValue || String(evt.scale));
   });
 
-  eventBus.on('pagerendered', () => {
-    console.log('PDFViewer: documentload event (via EventBus)');
+  eventBus.on('pagesloaded', () => {
+    console.log('PDFViewer: pagesloaded event (via EventBus)');
     const pageCount = pdfViewer?.pagesCount || 'N/A';
     setStatus(`Loaded: ${pageCount} pages`);
     pdfLinkService?.setDocument(currentPdfDocument, null);
@@ -106,6 +106,7 @@ function initializePdfJsComponents() {
   eventBus.on('updateviewarea', (evt: { location: any }) => {
     // Ensure map and location exist
     if (!outlinePageMap || !evt.location) return;
+    console.log('PDFViewer updateviewarea event (via EventBus');
 
     const currentPageIndex = evt.location.pageNumber - 1; // 0-based index
     let bestMatchElement: HTMLElement | null = null;
@@ -113,10 +114,10 @@ function initializePdfJsComponents() {
 
     // Find the best matching outline item based on page index
     outlinePageMap.forEach((pageIndex: number, element: HTMLElement) => { // Explicit types can sometimes help
-        if (pageIndex <= currentPageIndex && pageIndex > bestMatchPageIndex) {
-            bestMatchPageIndex = pageIndex;
-            bestMatchElement = element;
-        }
+      if (pageIndex <= currentPageIndex && pageIndex > bestMatchPageIndex) {
+        bestMatchPageIndex = pageIndex;
+        bestMatchElement = element;
+      }
     });
 
     // --- Start Modification ---
@@ -124,26 +125,26 @@ function initializePdfJsComponents() {
 
     // Case 1: Found a best match
     if (bestMatchElement) {
-        // Only update if it's different from the currently highlighted item
-        if (bestMatchElement !== lastOutlineHighlight) {
-            // Remove highlight from the old item (if any)
-            if (lastOutlineHighlight) {
-                lastOutlineHighlight.classList.remove('active');
-            }
-            // Add highlight to the new item (TypeScript should know it's HTMLElement here)
-            (bestMatchElement as HTMLElement).classList.add('active');
-            // Optional: Scroll the outline view
-            // bestMatchElement.scrollIntoView({ block: 'nearest' });
-            // Update the tracker
-            lastOutlineHighlight = bestMatchElement;
-        }
-    // Case 2: No match found (e.g., scrolled before first item)
-    } else {
-        // If something was highlighted previously, remove it
+      // Only update if it's different from the currently highlighted item
+      if (bestMatchElement !== lastOutlineHighlight) {
+        // Remove highlight from the old item (if any)
         if (lastOutlineHighlight) {
-            lastOutlineHighlight.classList.remove('active');
-            lastOutlineHighlight = null; // Reset tracker
+          lastOutlineHighlight.classList.remove('active');
         }
+        // Add highlight to the new item (TypeScript should know it's HTMLElement here)
+        (bestMatchElement as HTMLElement).classList.add('active');
+        // Optional: Scroll the outline view
+        // bestMatchElement.scrollIntoView({ block: 'nearest' });
+        // Update the tracker
+        lastOutlineHighlight = bestMatchElement;
+      }
+      // Case 2: No match found (e.g., scrolled before first item)
+    } else {
+      // If something was highlighted previously, remove it
+      if (lastOutlineHighlight) {
+        lastOutlineHighlight.classList.remove('active');
+        lastOutlineHighlight = null; // Reset tracker
+      }
     }
     // --- End Modification ---
   });
@@ -154,117 +155,117 @@ function initializePdfJsComponents() {
 
 // --- Outline Handling ---
 async function fetchAndRenderOutline() {
-    if (!currentPdfDocument) return;
+  if (!currentPdfDocument) return;
 
-    clearOutline(); // Clear previous outline
-    outlinePageMap = new Map(); // Reset page map
+  clearOutline(); // Clear previous outline
+  outlinePageMap = new Map(); // Reset page map
 
-    try {
-        outlineData = await currentPdfDocument.getOutline();
-        if (!outlineData || outlineData.length === 0) {
-            console.log("Document has no outline.");
-            outlineView.innerHTML = '<em>No outline available.</em>';
-            return;
-        }
-
-        console.log("Outline data fetched:", outlineData);
-        const rootUl = document.createElement('ul');
-        rootUl.className = 'outlineLevel';
-        // Start recursive rendering
-        await renderOutlineLevel(outlineData, rootUl);
-        outlineView.appendChild(rootUl);
-
-    } catch (error) {
-        console.error("Error fetching or rendering outline:", error);
-        outlineView.innerHTML = '<em>Error loading outline.</em>';
+  try {
+    outlineData = await currentPdfDocument.getOutline();
+    if (!outlineData || outlineData.length === 0) {
+      console.log("Document has no outline.");
+      outlineView.innerHTML = '<em>No outline available.</em>';
+      return;
     }
+
+    console.log("Outline data fetched:", outlineData);
+    const rootUl = document.createElement('ul');
+    rootUl.className = 'outlineLevel';
+    // Start recursive rendering
+    await renderOutlineLevel(outlineData, rootUl);
+    outlineView.appendChild(rootUl);
+
+  } catch (error) {
+    console.error("Error fetching or rendering outline:", error);
+    outlineView.innerHTML = '<em>Error loading outline.</em>';
+  }
 }
 
 async function renderOutlineLevel(items: OutlineNode[], container: HTMLUListElement) {
-    if (!currentPdfDocument || !pdfLinkService || !outlinePageMap) return;
+  if (!currentPdfDocument || !pdfLinkService || !outlinePageMap) return;
 
-    for (const item of items) {
-        const li = document.createElement('li');
-        li.className = 'outlineItem';
+  for (const item of items) {
+    const li = document.createElement('li');
+    li.className = 'outlineItem';
 
-        const a = document.createElement('a');
-        a.textContent = item.title || 'Untitled';
-        if (item.bold) a.style.fontWeight = 'bold';
-        if (item.italic) a.style.fontStyle = 'italic';
-        // Note: item.color requires more complex handling to apply
+    const a = document.createElement('a');
+    a.textContent = item.title || 'Untitled';
+    if (item.bold) a.style.fontWeight = 'bold';
+    if (item.italic) a.style.fontStyle = 'italic';
+    // Note: item.color requires more complex handling to apply
 
-        let destinationPageIndex: number | null = null;
+    let destinationPageIndex: number | null = null;
 
-        if (item.dest) {
-            try {
-                // Resolve destination (string or array) to get page index
-                const explicitDest = typeof item.dest === 'string'
-                    ? await currentPdfDocument.getDestination(item.dest)
-                    : item.dest;
+    if (item.dest) {
+      try {
+        // Resolve destination (string or array) to get page index
+        const explicitDest = typeof item.dest === 'string'
+          ? await currentPdfDocument.getDestination(item.dest)
+          : item.dest;
 
-                if (Array.isArray(explicitDest) && explicitDest[0] && typeof explicitDest[0] === 'object' && explicitDest[0].num) {
-                    // Destination is an array, first element is page ref obj
-                    destinationPageIndex = explicitDest[0].num - 1; // 0-based index
-                } else {
-                     console.warn("Could not resolve destination page index for:", item.title, item.dest);
-                }
-            } catch (destError) {
-                console.warn("Error resolving destination for:", item.title, destError);
-            }
-
-            if (destinationPageIndex !== null) {
-                // Store page index for scroll syncing
-                outlinePageMap.set(li, destinationPageIndex); // Map the LI element
-
-                // Add click listener for navigation
-                a.addEventListener('click', (event) => {
-                    event.preventDefault();
-                    event.stopPropagation(); // Prevent potential parent clicks
-                    if (pdfLinkService && item.dest) {
-                        console.log("Navigating to destination:", item.dest);
-                        // Use goToDestination for both named and explicit destinations
-                        pdfLinkService.goToDestination(item.dest)
-                            .catch(navError => console.error("Navigation error:", navError));
-
-                        // Immediately highlight clicked item (optional, scroll sync will catch up)
-                        if (lastOutlineHighlight) lastOutlineHighlight.classList.remove('active');
-                        li.classList.add('active');
-                        lastOutlineHighlight = li;
-                    }
-                });
-            } else {
-                 a.style.cursor = 'default'; // Indicate non-clickable if no valid dest page
-                 a.style.opacity = '0.7';
-            }
-
-        } else if (item.url) {
-            // Handle external URLs if needed (less common for internal outline)
-            a.href = item.url;
-            a.target = '_blank'; // Open external links in new tab
-            a.style.cursor = 'alias'; // Indicate external link
+        if (Array.isArray(explicitDest) && explicitDest[0] && typeof explicitDest[0] === 'object' && explicitDest[0].num) {
+          // Destination is an array, first element is page ref obj
+          destinationPageIndex = explicitDest[0].num - 1; // 0-based index
         } else {
-            a.style.cursor = 'default'; // No action
-            a.style.opacity = '0.7';
+          console.warn("Could not resolve destination page index for:", item.title, item.dest);
         }
+      } catch (destError) {
+        console.warn("Error resolving destination for:", item.title, destError);
+      }
 
-        li.appendChild(a);
-        container.appendChild(li);
+      if (destinationPageIndex !== null) {
+        // Store page index for scroll syncing
+        outlinePageMap.set(li, destinationPageIndex); // Map the LI element
 
-        // Recursively render nested items
-        if (item.items && item.items.length > 0) {
-            const nestedUl = document.createElement('ul');
-            nestedUl.className = 'outlineLevel';
-            li.appendChild(nestedUl);
-            await renderOutlineLevel(item.items, nestedUl); // Await recursive calls
-        }
+        // Add click listener for navigation
+        a.addEventListener('click', (event) => {
+          event.preventDefault();
+          event.stopPropagation(); // Prevent potential parent clicks
+          if (pdfLinkService && item.dest) {
+            console.log("Navigating to destination:", item.dest);
+            // Use goToDestination for both named and explicit destinations
+            pdfLinkService.goToDestination(item.dest)
+              .catch(navError => console.error("Navigation error:", navError));
+
+            // Immediately highlight clicked item (optional, scroll sync will catch up)
+            if (lastOutlineHighlight) lastOutlineHighlight.classList.remove('active');
+            li.classList.add('active');
+            lastOutlineHighlight = li;
+          }
+        });
+      } else {
+        a.style.cursor = 'default'; // Indicate non-clickable if no valid dest page
+        a.style.opacity = '0.7';
+      }
+
+    } else if (item.url) {
+      // Handle external URLs if needed (less common for internal outline)
+      a.href = item.url;
+      a.target = '_blank'; // Open external links in new tab
+      a.style.cursor = 'alias'; // Indicate external link
+    } else {
+      a.style.cursor = 'default'; // No action
+      a.style.opacity = '0.7';
     }
+
+    li.appendChild(a);
+    container.appendChild(li);
+
+    // Recursively render nested items
+    if (item.items && item.items.length > 0) {
+      const nestedUl = document.createElement('ul');
+      nestedUl.className = 'outlineLevel';
+      li.appendChild(nestedUl);
+      await renderOutlineLevel(item.items, nestedUl); // Await recursive calls
+    }
+  }
 }
 
 function clearOutline() {
-    outlineView.innerHTML = ''; // Clear previous content
-    lastOutlineHighlight = null; // Reset highlight tracking
-    outlineData = null;
-    outlinePageMap = null;
+  outlineView.innerHTML = ''; // Clear previous content
+  lastOutlineHighlight = null; // Reset highlight tracking
+  outlineData = null;
+  outlinePageMap = null;
 }
 
 // --- Loading Function ---
@@ -322,19 +323,19 @@ function showError(message: string) { console.error("Viewer Error:", message); e
 function hideError() { errorWrapper.hidden = true; }
 
 function updateZoomControls(presetValue?: string) {
-    if (!pdfViewer) return;
-    let currentScale = presetValue || String(pdfViewer.currentScaleValue);
-    const numericScale = parseFloat(currentScale);
-    if (!isNaN(numericScale)) { currentScale = Math.round(numericScale * 100) + "%"; }
-    let found = false;
-    for (let i = 0; i < zoomSelect.options.length; i++) {
-        const option = zoomSelect.options[i];
-        if (option?.value === pdfViewer.currentScaleValue || option?.text === currentScale) { zoomSelect.selectedIndex = i; found = true; break; }
-    }
-    if (!found && presetValue) {
-         for (let i = 0; i < zoomSelect.options.length; i++) { if (zoomSelect.options[i]?.value === presetValue) { zoomSelect.selectedIndex = i; found = true; break; } }
-    }
-    if (!found) { console.log("Scale value not found in presets:", pdfViewer.currentScaleValue); }
+  if (!pdfViewer) return;
+  let currentScale = presetValue || String(pdfViewer.currentScaleValue);
+  const numericScale = parseFloat(currentScale);
+  if (!isNaN(numericScale)) { currentScale = Math.round(numericScale * 100) + "%"; }
+  let found = false;
+  for (let i = 0; i < zoomSelect.options.length; i++) {
+    const option = zoomSelect.options[i];
+    if (option?.value === pdfViewer.currentScaleValue || option?.text === currentScale) { zoomSelect.selectedIndex = i; found = true; break; }
+  }
+  if (!found && presetValue) {
+    for (let i = 0; i < zoomSelect.options.length; i++) { if (zoomSelect.options[i]?.value === presetValue) { zoomSelect.selectedIndex = i; found = true; break; } }
+  }
+  if (!found) { console.log("Scale value not found in presets:", pdfViewer.currentScaleValue); }
 }
 
 // --- Event Listeners ---
@@ -358,22 +359,22 @@ errorCloseButton.addEventListener('click', hideError);
 
 // Sidebar View Toggles
 viewOutlineButton.addEventListener('click', () => {
-    outlineView.classList.remove('hidden');
-    thumbnailView.classList.add('hidden');
-    viewOutlineButton.classList.add('toggled'); // Add 'toggled' class for styling if needed
-    viewThumbnailButton.classList.remove('toggled');
+  outlineView.classList.remove('hidden');
+  thumbnailView.classList.add('hidden');
+  viewOutlineButton.classList.add('toggled'); // Add 'toggled' class for styling if needed
+  viewThumbnailButton.classList.remove('toggled');
 });
 
 viewThumbnailButton.addEventListener('click', () => {
-    thumbnailView.classList.remove('hidden');
-    outlineView.classList.add('hidden');
-    viewThumbnailButton.classList.add('toggled');
-    viewOutlineButton.classList.remove('toggled');
-    // Add logic here later if/when thumbnail view is implemented
-    console.log("Thumbnail view selected (not implemented yet).");
+  thumbnailView.classList.remove('hidden');
+  outlineView.classList.add('hidden');
+  viewThumbnailButton.classList.add('toggled');
+  viewOutlineButton.classList.remove('toggled');
+  // Add logic here later if/when thumbnail view is implemented
+  console.log("Thumbnail view selected (not implemented yet).");
 });
 
 // Set initial sidebar view (e.g., outline visible by default)
 document.addEventListener('DOMContentLoaded', () => {
-    viewOutlineButton.click(); // Programmatically click outline button initially
+  viewOutlineButton.click(); // Programmatically click outline button initially
 });
