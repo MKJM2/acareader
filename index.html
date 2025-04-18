@@ -4,30 +4,50 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Academic PDF Viewer</title>
-    <!-- Our custom styles -->
     <link rel="stylesheet" href="/styles.css" />
-    <!-- pdf.js viewer component CSS will be imported via JS -->
   </head>
   <body tabindex="1">
     <div id="outerContainer">
-      <!-- Sidebar (Keep structure for potential future use with components like PDFThumbnailViewer) -->
+      <!-- Sidebar -->
       <div id="sidebarContainer">
         <div id="toolbarSidebar">
-          <!-- Sidebar buttons (can be wired up later) -->
-          <button id="viewThumbnail">Thumbnails</button>
-          <button id="viewOutline">Outline</button>
+          <!-- Keep Thumbnail button placeholder if desired -->
+          <button
+            id="viewThumbnail"
+            class="toolbarButton"
+            title="Show Thumbnails"
+            tabindex="2"
+            data-l10n-id="thumbs"
+          >
+            <span data-l10n-id="thumbs_label">Thumbnails</span>
+          </button>
+          <!-- Outline Toggle Button -->
+          <button
+            id="viewOutline"
+            class="toolbarButton"
+            title="Show Document Outline"
+            tabindex="3"
+            data-l10n-id="document_outline"
+          >
+            <span data-l10n-id="document_outline_label">Document Outline</span>
+          </button>
+          <!-- Add other sidebar buttons here if needed -->
         </div>
         <div id="sidebarContent">
-          <div id="thumbnailView"></div>
-          <div id="outlineView" class="hidden"></div>
-          <!-- Other views -->
+          <!-- Thumbnail View Placeholder -->
+          <div id="thumbnailView" class="hidden"></div>
+          <!-- Outline View Container -->
+          <div id="outlineView">
+            <!-- Outline items will be rendered here -->
+          </div>
+          <!-- Other view placeholders -->
         </div>
         <div id="sidebarResizer"></div>
       </div>
       <!-- End Sidebar -->
 
       <div id="mainContainer">
-        <!-- Our Custom Toolbar -->
+        <!-- Custom Toolbar (remains the same) -->
         <div class="toolbar">
           <div id="customToolbar" class="customToolbar">
             <label for="file-input" class="toolbarButton">Open File</label>
@@ -39,7 +59,6 @@
               aria-label="PDF URL Input"
             />
             <button id="url-button">Load URL</button>
-            <!-- Add Zoom buttons -->
             <button id="zoomOut" class="toolbarButton">-</button>
             <button id="zoomIn" class="toolbarButton">+</button>
             <select id="zoomSelect" class="toolbarButton">
@@ -61,16 +80,14 @@
         </div>
         <!-- End Custom Toolbar -->
 
-        <!-- The main viewer area -->
+        <!-- Viewer Area (remains the same) -->
         <div id="viewerContainer" tabindex="0">
-          <!-- The PDFViewer component will manage content inside this div -->
           <div id="viewer" class="pdfViewer"></div>
-          <!-- Drop zone overlay -->
           <div id="drop-zone">Drop PDF here</div>
         </div>
         <!-- End Viewer Area -->
 
-        <!-- Error Wrapper (Simplified, can be enhanced) -->
+        <!-- Error Wrapper (remains the same) -->
         <div id="errorWrapper" hidden="true">
           <span id="errorMessage"></span>
           <button id="errorClose">Close</button>
@@ -80,8 +97,6 @@
       <!-- End mainContainer -->
     </div>
     <!-- End outerContainer -->
-
-    <!-- Load the main application script -->
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

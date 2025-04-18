@@ -17,7 +17,9 @@ body { font-family: sans-serif; height: 100%; width: 100%; overflow: hidden; bac
 #sidebarContainer { width: var(--sidebar-width); overflow: hidden; position: relative; display: flex; flex-direction: column; border-right: 1px solid var(--border-color); transition: width 150ms ease-in-out; }
 #toolbarSidebar { display: flex; padding: 5px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; gap: 5px; }
 #toolbarSidebar button { padding: 3px 5px; font-size: 1.1rem; }
-#sidebarContent { flex-grow: 1; overflow: auto; position: relative; }
+#sidebarContent {
+flex-grow: 1; overflow: auto; position: relative; padding: 5px; /* Add some padding */
+}
 #sidebarContent > div { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
 #sidebarContent > div.hidden { display: none; }
 #sidebarResizer { width: 6px; height: 100%; position: absolute; right: -3px; top: 0; cursor: ew-resize; background-color: transparent; z-index: 50; }
@@ -55,3 +57,43 @@ body.dragging #drop-zone { opacity: 1; pointer-events: auto; }
 #errorWrapper { position: absolute; top: var(--toolbar-height); left: 0; right: 0; background: #ff5555; color: white; padding: 10px; z-index: 1000; font-size: 1.3rem; display: flex; justify-content: space-between; align-items: center; }
 #errorWrapper button { margin-left: 10px; padding: 3px 8px; cursor: pointer; }
 .hidden { display: none !important; }
+
+
+ #sidebarContent > div.hidden {
+   display: none;
+ }
+
+/* Outline View Specific Styles */
+#outlineView {
+  font-size: 1.2rem; /* Base font size for outline */
+  line-height: 1.6;
+}
+
+.outlineLevel { /* Style for the UL elements */
+  list-style: none;
+  padding-left: 15px; /* Indentation for levels */
+  margin: 0;
+}
+
+.outlineItem { /* Style for the LI elements */
+  margin: 2px 0;
+}
+
+.outlineItem > a {
+  text-decoration: none;
+  color: #333;
+  display: block; /* Make the whole area clickable */
+  padding: 2px 5px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.outlineItem > a:hover {
+  background-color: #eee;
+}
+
+.outlineItem.active > a { /* Style for the active item */
+  background-color: #d0e0f0; /* Highlight background */
+  font-weight: bold;
+  color: #111;
+}
