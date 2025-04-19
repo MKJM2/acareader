@@ -56,7 +56,7 @@ let eventBus: EventBus | null = null;
 let currentPdfDocument: PDFDocumentProxy | null = null;
 let lastOutlineHighlight: HTMLElement | null = null; // Track highlighted item
 let outlineData: OutlineNode[] | null = null; // Store fetched outline data
-let outlinePageMap: Map<HTMLElement, number> | null = null; // Map outline elements to page indices
+let outlineDestMap: Map<HTMLElement, { pageIndex: number, top: number | null }> | null = null; // Map outline elements to page indices
 
 // --- Enums (using fallback values) ---
 const LinkTarget_BLANK = 2;
@@ -105,48 +105,92 @@ function initializePdfJsComponents() {
   // Listener for scroll/view area changes to update outline highlight
   eventBus.on('updateviewarea', (evt: { location: any }) => {
     // Ensure map and location exist
-    if (!outlinePageMap || !evt.location) return;
-    console.log('PDFViewer updateviewarea event (via EventBus');
+    if (!outlineDestMap || !evt.location || !pdfViewer) return; // Add pdfViewer check
 
-    const currentPageIndex = evt.location.pageNumber - 1; // 0-based index
+    // --- Use Destination Coordinates ---
+    const currentScroll = pdfViewer.container.scrollTop; // Use container scroll
+    const currentCenter = currentScroll + pdfViewer.container.clientHeight / 2; // Approx center
+
+    // Find the page view nearest the center of the viewport
+    // PDFViewer stores page views; we need to find which one is currently visible
+    let visiblePageView = pdfViewer.getPageView(0); // Default to first page
+    for (let i = 0; i < pdfViewer.pagesCount; i++) {
+        const pageView = pdfViewer.getPageView(i);
+        if (!pageView?.div) continue; // Skip if page view not rendered/ready
+
+        const pageTop = pageView.div.offsetTop;
+        const pageBottom = pageTop + pageView.div.clientHeight;
+
+        // Check if the center of the viewport falls within this page's bounds
+        if (currentCenter >= pageTop && currentCenter < pageBottom) {
+            visiblePageView = pageView;
+            break; // Found the most relevant page
+        }
+        // Fallback: if scrolled past the last page's top, use the last page
+        if (i === pdfViewer.pagesCount - 1 && currentScroll >= pageTop) {
+             visiblePageView = pageView;
+        }
+    }
+
+    if (!visiblePageView?.pdfPage) {
+        console.warn("Could not determine visible page view.");
+        return; // Cannot proceed without a valid page view
+    }
+
+    const currentPageIndex = visiblePageView.id - 1; // pageView.id is 1-based page number
+    const pageViewport = visiblePageView.viewport; // Use the viewport of the visible page
+
+    // Calculate the scroll position *within* the current page, relative to its top-left (PDF coords)
+    // scrollTop is relative to the container, pageTop is the page's offset within the container
+    const scrollWithinPage = currentScroll - visiblePageView.div.offsetTop;
+    // Convert viewport scroll position to PDF coordinate system (usually y increases downwards)
+    // Note: This might need adjustment based on viewport rotation
+    const currentY = pageViewport.convertToPdfPoint(0, scrollWithinPage)[1];
+
     let bestMatchElement: HTMLElement | null = null;
-    let bestMatchPageIndex = -1;
+    let bestMatchPage = -1;
+    let bestMatchTop = -Infinity; // Use -Infinity to correctly find the max top <= currentY
 
-    // Find the best matching outline item based on page index
-    outlinePageMap.forEach((pageIndex: number, element: HTMLElement) => { // Explicit types can sometimes help
-      if (pageIndex <= currentPageIndex && pageIndex > bestMatchPageIndex) {
-        bestMatchPageIndex = pageIndex;
-        bestMatchElement = element;
-      }
+    // Iterate through the stored outline destinations
+    outlineDestMap.forEach((destInfo: { pageIndex: number; top: number | null }, element: HTMLElement) => {
+        // Check if this destination is "above or at" the current scroll position
+        const isAboveOrAt = (
+            destInfo.pageIndex < currentPageIndex ||
+            (destInfo.pageIndex === currentPageIndex && destInfo.top !== null && destInfo.top >= currentY)
+            // Note: PDF Y-coords often increase downwards, so a higher 'top' value means lower on the page.
+            // We want the *highest* 'top' value that is still >= currentY (meaning just above or at the scroll position).
+            // If your coordinate system is inverted (Y increases upwards), flip the comparison: destInfo.top <= currentY
+        );
+
+        if (isAboveOrAt) {
+            // Check if this is a "better" match than the current best
+            // Prioritize page index first, then the 'top' coordinate
+            if (destInfo.pageIndex > bestMatchPage) {
+                bestMatchPage = destInfo.pageIndex;
+                bestMatchTop = destInfo.top ?? -Infinity; // Use -Infinity if top is null
+                bestMatchElement = element;
+            } else if (destInfo.pageIndex === bestMatchPage && (destInfo.top ?? -Infinity) > bestMatchTop) {
+                // On the same page, find the one with the highest 'top' value (closest below or at currentY)
+                bestMatchTop = destInfo.top ?? -Infinity;
+                bestMatchElement = element;
+            }
+        }
     });
 
-    // --- Start Modification ---
-    // Update highlighting using clearer conditional structure
-
-    // Case 1: Found a best match
-    if (bestMatchElement) {
-      // Only update if it's different from the currently highlighted item
-      if (bestMatchElement !== lastOutlineHighlight) {
-        // Remove highlight from the old item (if any)
+    // Update highlighting
+    if (bestMatchElement && bestMatchElement !== lastOutlineHighlight) {
         if (lastOutlineHighlight) {
-          lastOutlineHighlight.classList.remove('active');
+            lastOutlineHighlight.classList.remove('active');
         }
-        // Add highlight to the new item (TypeScript should know it's HTMLElement here)
         (bestMatchElement as HTMLElement).classList.add('active');
-        // Optional: Scroll the outline view
-        // bestMatchElement.scrollIntoView({ block: 'nearest' });
-        // Update the tracker
+        // Scroll outline view to keep active item visible
+        (bestMatchElement as HTMLElement).scrollIntoView({ block: 'nearest' });
         lastOutlineHighlight = bestMatchElement;
-      }
-      // Case 2: No match found (e.g., scrolled before first item)
-    } else {
-      // If something was highlighted previously, remove it
-      if (lastOutlineHighlight) {
-        // lastOutlineHighlight.classList.remove('active');
-        // lastOutlineHighlight = null; // Reset tracker
-      }
+    } else if (!bestMatchElement && lastOutlineHighlight) {
+        // Scrolled before the first outline item
+        lastOutlineHighlight.classList.remove('active');
+        lastOutlineHighlight = null;
     }
-    // --- End Modification ---
   });
 
   console.log("PDF.js components initialized.");
@@ -158,7 +202,7 @@ async function fetchAndRenderOutline() {
   if (!currentPdfDocument) return;
 
   clearOutline(); // Clear previous outline
-  outlinePageMap = new Map(); // Reset page map
+  outlineDestMap = new Map(); // Reset page map
 
   try {
     outlineData = await currentPdfDocument.getOutline();
@@ -182,7 +226,7 @@ async function fetchAndRenderOutline() {
 }
 
 async function renderOutlineLevel(items: OutlineNode[], container: HTMLUListElement) {
-  if (!currentPdfDocument || !pdfLinkService || !outlinePageMap) return;
+  if (!currentPdfDocument || !pdfLinkService || !outlineDestMap) return;
 
   for (const item of items) {
     const li = document.createElement('li');
@@ -195,6 +239,7 @@ async function renderOutlineLevel(items: OutlineNode[], container: HTMLUListElem
     // Note: item.color requires more complex handling to apply
 
     let destinationPageIndex: number | null = null;
+    let destinationTop: number | null = null;
 
     if (item.dest) {
       try {
@@ -203,9 +248,36 @@ async function renderOutlineLevel(items: OutlineNode[], container: HTMLUListElem
           ? await currentPdfDocument.getDestination(item.dest)
           : item.dest;
 
-        if (Array.isArray(explicitDest) && explicitDest[0] && typeof explicitDest[0] === 'object' && explicitDest[0].num) {
-          // Destination is an array, first element is page ref obj
-          destinationPageIndex = explicitDest[0].num - 1; // 0-based index
+        console.log(explicitDest);
+
+
+        if (Array.isArray(explicitDest) && explicitDest[0] && typeof explicitDest[0] === 'object' && explicitDest[0].num !== undefined) {
+          // Get page index (0-based)
+          destinationPageIndex = await currentPdfDocument.getPageIndex(explicitDest[0]); // Get page object to resolve ref
+
+          // Try to get 'top' coordinate, primarily from 'XYZ' type
+          if (explicitDest[1] && typeof explicitDest[1] === 'object' && explicitDest[1].name === 'XYZ') {
+             // explicitDest looks like [pageRef, {name: 'XYZ'}, left, top, zoom]
+             // The actual top value might be null if not specified
+             destinationTop = explicitDest[3] as number | null;
+             // PDF coordinates often measure from top-left, but viewer might use different origin.
+             // For 'XYZ', 'top' is usually distance from the *top* edge of the page.
+             // Higher 'top' values mean lower down the page.
+             // We might need to invert this if comparing with scroll position measuring from top.
+             // Let's assume for now higher value = lower on page.
+             // If scroll sync seems inverted, adjust here (e.g., pageHeight - top).
+          } else if (explicitDest[1] && typeof explicitDest[1] === 'object' && (explicitDest[1].name === 'FitV' || explicitDest[1].name === 'FitBV')) {
+             // For FitV/FitBV, the coordinate is the left edge, top is implicitly 0 (top edge)
+             destinationTop = 0;
+          } else if (explicitDest[1] && typeof explicitDest[1] === 'object' && (explicitDest[1].name === 'FitH' || explicitDest[1].name === 'FitBH')) {
+             // For FitH/FitBH, the coordinate is the top edge.
+             destinationTop = explicitDest[2] as number | null;
+          } else {
+             // For Fit, FitB, or unknown/unhandled types, we can't easily get a 'top' coord.
+             // Treat as top of the page for scroll sync purposes.
+             destinationTop = 0; // Default to top of page if no specific coord
+             console.log("Outline item type doesn't provide specific top coord:", item.title, explicitDest[1]?.name);
+          }
         } else {
           console.warn("Could not resolve destination page index for:", item.title, item.dest);
         }
@@ -215,7 +287,7 @@ async function renderOutlineLevel(items: OutlineNode[], container: HTMLUListElem
 
       if (destinationPageIndex !== null) {
         // Store page index for scroll syncing
-        outlinePageMap.set(li, destinationPageIndex); // Map the LI element
+        outlineDestMap.set(li, { pageIndex: destinationPageIndex, top: destinationTop });
 
         // Add click listener for navigation
         a.addEventListener('click', (event) => {
@@ -265,7 +337,7 @@ function clearOutline() {
   outlineView.innerHTML = ''; // Clear previous content
   lastOutlineHighlight = null; // Reset highlight tracking
   outlineData = null;
-  outlinePageMap = null;
+  outlineDestMap = null;
 }
 
 // --- Loading Function ---
